@@ -193,7 +193,43 @@ class Formula:
             should be of ``None`` and an error message, where the error message
             is a string with some human-readable content.
         """
-        # Task 1.4
+        if not string:
+            return None, "Empty string"
+        if is_variable(string[0]):
+            i = 1
+            while i < len(string) and string[i].isdigit():
+                i += 1
+            var_name = string[:i]
+            return Formula(var_name), string[i:]
+        if is_constant(string[0]):
+            return Formula(string[0]), string[1:]
+        if string[0] == '~':
+            formula, remainder = Formula._parse_prefix(string[1:])
+            if formula is None:
+                return None, "Missing operand after unary operator"
+            return Formula('~', formula), remainder
+        if string[0] == '(':
+            # Parse first operand
+            first_formula, remainder = Formula._parse_prefix(string[1:])
+            if first_formula is None:
+                return None, "Missing first operand in binary formula"
+            if not remainder:
+                return None, "Missing operator in binary formula"
+            if is_binary(remainder[0]):
+                operator = remainder[0]
+                remainder = remainder[1:]
+            elif remainder.startswith('->'):
+                operator = '->'
+                remainder = remainder[2:]
+            else:
+                return None, "Invalid binary operator"
+            second_formula, remainder = Formula._parse_prefix(remainder)
+            if second_formula is None:
+                return None, "Missing second operand in binary formula"
+            if not remainder or remainder[0] != ')':
+                return None, "Missing closing parenthesis"
+            return Formula(operator, first_formula, second_formula), remainder[1:]
+        return None, "Invalid formula syntax"
 
     @staticmethod
     def is_formula(string: str) -> bool:
@@ -304,4 +340,5 @@ class Formula:
                    is_binary(operator)
             assert substitution_map[operator].variables().issubset({'p', 'q'})
         # Task 3.4
+
 
