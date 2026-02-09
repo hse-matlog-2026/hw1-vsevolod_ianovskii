@@ -209,7 +209,6 @@ class Formula:
                 return None, "Missing operand after unary operator"
             return Formula('~', formula), remainder
         if string[0] == '(':
-            # Parse first operand
             first_formula, remainder = Formula._parse_prefix(string[1:])
             if first_formula is None:
                 return None, "Missing first operand in binary formula"
@@ -284,7 +283,35 @@ class Formula:
         Returns:
             A formula whose polish notation representation is the given string.
         """
-        # Optional Task 1.8
+        def parse_polish_helper(s: str, index: int) -> Tuple[Formula, int]:
+            if not s or index >= len(s):
+                raise ValueError("Invalid polish notation")
+            current_char = s[index]
+            if is_variable(current_char):
+                i = index
+                while i < len(s) and (s[i].isdigit() or (i == index and is_variable(s[i]))):
+                    i += 1
+                var_name = s[index:i]
+                return Formula(var_name), i
+            if is_constant(current_char):
+                return Formula(current_char), index + 1
+            if current_char == '~':
+                formula, new_index = parse_polish_helper(s, index + 1)
+                return Formula('~', formula), new_index
+            if is_binary(current_char):
+                operator = current_char
+                first_formula, index1 = parse_polish_helper(s, index + 1)
+                second_formula, index2 = parse_polish_helper(s, index1)
+                return Formula(operator, first_formula, second_formula), index2
+            if current_char == '-' and index + 1 < len(s) and s[index + 1] == '>':
+                first_formula, index1 = parse_polish_helper(s, index + 2)
+                second_formula, index2 = parse_polish_helper(s, index1)
+                return Formula('->', first_formula, second_formula), index2
+            raise ValueError("Invalid polish notation")
+        formula, end_index = parse_polish_helper(string, 0)
+        if end_index != len(string):
+            raise ValueError("Extra characters at end of polish notation")
+        return formula
 
     def substitute_variables(self, substitution_map: Mapping[str, Formula]) -> \
             Formula:
@@ -340,5 +367,6 @@ class Formula:
                    is_binary(operator)
             assert substitution_map[operator].variables().issubset({'p', 'q'})
         # Task 3.4
+
 
 
